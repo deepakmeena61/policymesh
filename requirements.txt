@@ -1,0 +1,10 @@
+fastapi>=0.111
+uvicorn[standard]>=0.29
+asyncpg>=0.29
+python-dotenv>=1.0
+mcp[cli]>=2.0
+sqlglot>=26.0
+groq>=1.6
+google-genai>=2.0
+pytest>=8.0
+pytest-asyncio>=1.0

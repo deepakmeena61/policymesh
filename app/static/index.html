@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PolicyMesh — Revenue & Customer Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:          #0b0e15;
+      --surface:     #10141e;
+      --surface-2:   #131824;
+      --surface-3:   #171c2a;
+      --border:      #1d2233;
+      --border-2:    #26304a;
+      --accent:      #4f7df4;
+      --accent-dim:  #3d6ae8;
+      --accent-glow: rgba(79,125,244,0.11);
+      --text:        #e2e8f0;
+      --text-2:      #94a3b8;
+      --text-3:      #546070;
+      --violet:      #a78bfa;
+      --sky:         #38bdf8;
+      --green:       #34d399;
+      --amber:       #fbbf24;
+      --red:         #f87171;
+      --font:        'Inter', system-ui, sans-serif;
+      --mono:        'JetBrains Mono', 'Fira Code', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 10px; }
+
+    /* ── Grid background ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(79,125,244,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79,125,244,0.015) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Header ── */
+    .header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(7,7,15,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 54px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .logo-mark {
+      width: 26px; height: 26px;
+      background: linear-gradient(135deg, #4f7df4 0%, #6d9cf8 100%);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800; color: #fff;
+      letter-spacing: -0.5px;
+      box-shadow: 0 0 16px rgba(79,125,244,0.4);
+      flex-shrink: 0;
+    }
+    .header-name {
+      font-size: 14px; font-weight: 700;
+      background: linear-gradient(90deg, #e2e8f0, #94a3b8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .header-sep { color: var(--border-2); margin: 0 2px; }
+    .header-sub { font-size: 12px; color: var(--text-3); font-weight: 400; }
+    .header-pills {
+      margin-left: auto;
+      display: flex; gap: 6px; align-items: center;
+    }
+    .pill {
+      font-size: 9px; font-weight: 600; font-family: var(--mono);
+      letter-spacing: 0.8px; text-transform: uppercase;
+      padding: 3px 7px; border-radius: 20px;
+      border: 1px solid var(--border-2);
+      color: var(--text-3);
+      cursor: pointer; background: none;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    .pill:hover { border-color: var(--accent); color: var(--text-2); }
+    .pill.active { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+    .pill-accent { border-color: rgba(79,125,244,0.35); color: var(--accent); background: var(--accent-glow); }
+
+    /* ── Popover panel ── */
+    #popover {
+      display: none;
+      position: fixed; z-index: 200;
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      border-radius: 12px;
+      padding: 16px 18px;
+      min-width: 260px; max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(79,125,244,.1);
+      font-size: 12px;
+    }
+    #popover.open { display: block; animation: popIn .15s cubic-bezier(.16,1,.3,1); }
+    @keyframes popIn { from { opacity:0; transform:translateY(-6px) scale(.97); } to { opacity:1; transform:none; } }
+    .pop-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--text-3);
+      margin-bottom: 12px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .pop-row {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 12px; padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono); font-size: 11px;
+    }
+    .pop-row:last-child { border-bottom: none; }
+    .pop-key { color: var(--text-3); flex-shrink: 0; }
+    .pop-val { color: var(--text); text-align: right; word-break: break-all; }
+    .pop-ok  { color: var(--green); }
+    .pop-err { color: var(--red); }
+    .pop-dim { color: var(--text-3); }
+    .audit-row {
+      padding: 5px 0; border-bottom: 1px solid var(--border);
+      font-family: var(--mono); font-size: 10px; line-height: 1.5;
+    }
+    .audit-row:last-child { border-bottom: none; }
+    .audit-tool-sql  { color: var(--violet); }
+    .audit-tool-docs { color: var(--sky); }
+    .audit-tool-meta { color: var(--amber); }
+    .audit-err { color: var(--red); }
+
+    /* ── Main layout ── */
+    .main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 52px 20px 100px; }
+
+    /* ── Hero ── */
+    .hero { text-align: center; margin-bottom: 44px; }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 10px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--accent);
+      background: var(--accent-glow); border: 1px solid rgba(79,125,244,0.25);
+      padding: 4px 12px; border-radius: 20px; margin-bottom: 18px;
+    }
+    .hero-eyebrow::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.4; transform: scale(0.7); }
+    }
+    .hero-title {
+      font-size: 40px; font-weight: 800; line-height: 1.08;
+      letter-spacing: -2px;
+      background: linear-gradient(145deg, #f1f5f9 0%, #bdd1fb 45%, #90b4f7 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 14px;
+      filter: drop-shadow(0 0 40px rgba(79,125,244,.25));
+    }
+    .hero-desc {
+      font-size: 14px; color: var(--text-3); line-height: 1.7;
+      max-width: 440px; margin: 0 auto;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    /* Top-edge radial glow */
+    .card::before {
+      content: '';
+      position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+      width: 60%; height: 120px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(79,125,244,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--text-3);
+      margin-bottom: 10px;
+    }
+
+    /* ── Role cards ── */
+    .roles { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 22px; }
+    .role-card {
+      padding: 12px 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-2);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+      user-select: none;
+    }
+    .role-card:hover { border-color: rgba(79,125,244,0.4); }
+    .role-card.active {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+      box-shadow: 0 0 0 1px var(--accent), inset 0 0 20px rgba(79,125,244,0.05);
+    }
+    .role-name {
+      font-family: var(--mono); font-size: 12px; font-weight: 600;
+      color: var(--text); margin-bottom: 8px;
+    }
+    .perm { font-size: 10px; display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+    .perm:last-child { margin-bottom: 0; }
+    .perm-ok  { color: var(--green); }
+    .perm-no  { color: var(--text-3); }
+
+    /* ── Suggestions ── */
+    .suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .sugg {
+      font-size: 11px; padding: 5px 11px;
+      border: 1px solid var(--border-2); border-radius: 20px;
+      color: var(--text-2); background: var(--surface-2);
+      cursor: pointer; transition: all 0.12s; white-space: nowrap;
+    }
+    .sugg:hover { border-color: var(--accent); color: var(--text); background: var(--accent-glow); }
+
+    /* ── Textarea ── */
+    textarea {
+      width: 100%; background: var(--surface-2);
+      border: 1px solid var(--border-2); border-radius: 10px;
+      padding: 14px 16px; font-size: 14px; font-family: var(--font);
+      color: var(--text); resize: none; transition: border-color 0.15s, box-shadow 0.15s;
+      line-height: 1.55; margin-bottom: 14px;
+    }
+    textarea::placeholder { color: var(--text-3); }
+    textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+    /* ── Submit ── */
+    .submit-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .kbd-hint { font-size: 10px; color: var(--text-3); font-family: var(--mono); display: flex; align-items: center; gap: 3px; }
+    kbd { padding: 1px 5px; border: 1px solid var(--border-2); border-radius: 4px; font-size: 10px; font-family: var(--mono); }
+    .btn {
+      padding: 9px 22px;
+      background: linear-gradient(135deg, #4f7df4, #6d9cf8);
+      color: #fff; font-size: 13px; font-weight: 600; font-family: var(--font);
+      border: none; border-radius: 9px; cursor: pointer;
+      transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+      display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 4px 20px rgba(79,125,244,0.35);
+    }
+    .btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(79,125,244,0.45); }
+    .btn:active:not(:disabled) { transform: translateY(0); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+
+    /* ── Loading dots ── */
+    .dots { display: none; gap: 3px; align-items: center; }
+    .dot { width: 4px; height: 4px; background: #fff; border-radius: 50%; animation: blink 1.2s ease-in-out infinite; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100% { transform:scale(0.6); opacity:0.3; } 40% { transform:scale(1); opacity:1; } }
+
+    /* ── Result section ── */
+    #result { display: none; margin-top: 24px; }
+    .result-in { display: block !important; animation: rise 0.35s cubic-bezier(.16,1,.3,1); }
+    @keyframes rise { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+
+    /* ── Answer card ── */
+    .answer-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden; margin-bottom: 14px;
+    }
+    .answer-header {
+      padding: 11px 18px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface-2);
+    }
+    .answer-hdr-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-3); flex: 1; }
+    .tag {
+      font-size: 10px; font-weight: 600; font-family: var(--mono);
+      padding: 2px 8px; border-radius: 20px;
+    }
+    .tag-green { background: rgba(52,211,153,.1); color: var(--green);  border: 1px solid rgba(52,211,153,.2); }
+    .tag-amber { background: rgba(251,191,36,.1); color: var(--amber); border: 1px solid rgba(251,191,36,.2); }
+    .tag-red   { background: rgba(248,113,113,.1); color: var(--red);  border: 1px solid rgba(248,113,113,.2); }
+    .tag-gray  { background: rgba(74,85,104,.15);  color: var(--text-3); border: 1px solid var(--border-2); }
+    .tag-accent{ background: var(--accent-glow);   color: var(--accent); border: 1px solid rgba(79,125,244,.3); }
+    .answer-body {
+      padding: 20px 20px 20px 22px;
+      font-size: 14px; line-height: 1.75; color: var(--text);
+      border-left: 3px solid rgba(79,125,244,0.35);
+      margin-left: 0;
+    }
+
+    /* ── Citation markers ── */
+    .cite {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 15px; height: 15px; padding: 0 3px;
+      font-size: 8px; font-weight: 800; font-family: var(--mono);
+      background: rgba(79,125,244,.14); border: 1px solid rgba(79,125,244,.35);
+      color: var(--accent); border-radius: 4px;
+      vertical-align: super; line-height: 1;
+      cursor: help; transition: background .12s, border-color .12s;
+      margin: 0 1px; position: relative;
+    }
+    .cite:hover { background: rgba(79,125,244,.28); border-color: var(--accent); }
+
+    /* ── Steps section ── */
+    .steps-hdr {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--text-3);
+      cursor: pointer; padding: 6px 0 10px;
+      border: none; background: none; width: 100%; text-align: left;
+      transition: color .15s;
+    }
+    .steps-hdr:hover { color: var(--text-2); }
+    .steps-hdr .arrow { margin-left: auto; font-size: 10px; transition: transform .2s; }
+    .steps-hdr.open .arrow { transform: rotate(90deg); }
+
+    /* ── Timeline ── */
+    .timeline { display: none; flex-direction: column; }
+    .timeline.open { display: flex; }
+
+    .t-item { display: flex; gap: 12px; padding-bottom: 18px; }
+    .t-item:last-child { padding-bottom: 0; }
+
+    .t-spine { display: flex; flex-direction: column; align-items: center; width: 32px; flex-shrink: 0; }
+    .t-node {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; font-family: var(--mono);
+      flex-shrink: 0;
+    }
+    .t-node-sql  { background: rgba(167,139,250,.12); color: var(--violet); border: 1px solid rgba(167,139,250,.28); }
+    .t-node-docs { background: rgba(56,189,248,.12);  color: var(--sky);    border: 1px solid rgba(56,189,248,.28); }
+    .t-node-err  { background: rgba(248,113,113,.1);  color: var(--red);    border: 1px solid rgba(248,113,113,.25); }
+    .t-line { width: 1px; flex: 1; min-height: 12px; background: var(--border-2); margin-top: 5px; }
+
+    .t-body { flex: 1; padding-top: 6px; min-width: 0; }
+    .t-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .tool-tag {
+      font-size: 10px; font-weight: 700; font-family: var(--mono);
+      padding: 3px 8px; border-radius: 5px;
+    }
+    .tool-sql  { background: rgba(167,139,250,.12); color: var(--violet); border: 1px solid rgba(167,139,250,.25); }
+    .tool-docs { background: rgba(56,189,248,.12);  color: var(--sky);    border: 1px solid rgba(56,189,248,.25); }
+    .t-meta { font-size: 10px; color: var(--text-3); font-family: var(--mono); margin-left: auto; }
+
+    /* ── Code block ── */
+    .code-block {
+      background: #090914; border: 1px solid var(--border-2);
+      border-radius: 8px; padding: 11px 14px;
+      font-size: 11.5px; font-family: var(--mono); color: #c9d1d9;
+      white-space: pre-wrap; word-break: break-word; line-height: 1.55;
+      margin-bottom: 7px; overflow-x: auto;
+    }
+    /* SQL tokens */
+    .kw  { color: #ff79c6; }
+    .fn  { color: #bd93f9; }
+    .str { color: #f1fa8c; }
+    .nm  { color: #8be9fd; }
+    .op  { color: #6272a4; }
+
+    /* ── Step result ── */
+    .t-result {
+      font-size: 11px; font-family: var(--mono); line-height: 1.55;
+      padding: 8px 12px; border-radius: 7px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text-3); word-break: break-word;
+    }
+    .t-result.err { color: var(--red); background: rgba(248,113,113,.06); border-color: rgba(248,113,113,.2); }
+    .t-result-key { color: var(--text-2); }
+    .doc-pull { border-left: 2px solid var(--sky); padding-left: 10px; color: var(--text-3); font-family: var(--font); font-size: 11px; line-height: 1.55; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; gap: 4px; margin-bottom: 18px;
+      border-bottom: 1px solid var(--border); padding-bottom: 0;
+    }
+    .tab {
+      font-size: 13px; font-weight: 600; padding: 8px 18px;
+      border: none; background: none; color: var(--text-3);
+      cursor: pointer; border-radius: 8px 8px 0 0;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px; transition: all .15s; font-family: var(--font);
+    }
+    .tab:hover { color: var(--text-2); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── Explore panel ── */
+    .explore-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 600px) { .explore-grid { grid-template-columns: 1fr; } }
+
+    .ex-table-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden; cursor: pointer;
+      transition: border-color .15s;
+    }
+    .ex-table-card:hover { border-color: var(--accent); }
+    .ex-table-card.open  { border-color: var(--accent); grid-column: 1 / -1; }
+
+    .ex-card-head {
+      padding: 14px 16px; display: flex; align-items: center; gap: 10px;
+      background: var(--surface-2);
+    }
+    .ex-table-name { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--text); }
+    .ex-row-count  { font-family: var(--mono); font-size: 11px; color: var(--text-3); margin-left: auto; }
+    .ex-expand-arrow { font-size: 10px; color: var(--text-3); transition: transform .2s; }
+    .ex-table-card.open .ex-expand-arrow { transform: rotate(90deg); }
+
+    .ex-body { display: none; padding: 16px; border-top: 1px solid var(--border); }
+    .ex-table-card.open .ex-body { display: block; }
+
+    /* Column list */
+    .ex-cols { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .ex-col {
+      font-family: var(--mono); font-size: 10px; padding: 3px 9px;
+      border-radius: 5px; border: 1px solid var(--border-2);
+      display: flex; align-items: center; gap: 5px;
+    }
+    .ex-col-name { color: var(--text-2); }
+    .ex-col-type { color: var(--text-3); }
+    .ex-col.restricted {
+      border-color: rgba(251,191,36,.25); background: rgba(251,191,36,.06);
+    }
+    .ex-col.restricted .ex-col-name { color: var(--amber); }
+    .ex-restricted-badge {
+      font-size: 8px; font-weight: 700; color: var(--amber);
+      background: rgba(251,191,36,.15); padding: 1px 4px; border-radius: 3px;
+    }
+
+    /* Stats pills */
+    .ex-stats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .ex-stat-pill {
+      font-size: 10px; font-family: var(--mono);
+      padding: 3px 9px; border-radius: 20px;
+      background: var(--surface-2); border: 1px solid var(--border-2);
+      color: var(--text-3);
+    }
+    .ex-stat-pill span { color: var(--text-2); }
+
+    /* Sample table */
+    .ex-sample-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--text-3); margin-bottom: 8px;
+    }
+    .ex-tbl { width: 100%; border-collapse: collapse; font-size: 11px; font-family: var(--mono); }
+    .ex-tbl th {
+      text-align: left; padding: 6px 10px; color: var(--text-3);
+      border-bottom: 1px solid var(--border); font-weight: 600; font-size: 10px;
+    }
+    .ex-tbl td {
+      padding: 5px 10px; color: var(--text-2);
+      border-bottom: 1px solid var(--border); max-width: 180px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .ex-tbl tr:last-child td { border-bottom: none; }
+    .ex-masked-cell { color: var(--amber); font-weight: 700; }
+    .ex-loading { color: var(--text-3); font-size: 12px; font-family: var(--mono); padding: 20px 0; text-align: center; }
+
+    /* ── MCP enforcement trace bar ── */
+    .mcp-trace {
+      margin-top: 7px;
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      font-family: var(--mono); font-size: 9.5px;
+      padding: 6px 10px; border-radius: 6px;
+      border: 1px solid;
+    }
+    .mcp-trace-label {
+      font-weight: 700; letter-spacing: 0.5px;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .mcp-trace-sep { color: currentColor; opacity: 0.3; }
+    .mcp-trace-guard { opacity: 0.75; }
+    /* states */
+    .mcp-ok {
+      background: rgba(52,211,153,.05); border-color: rgba(52,211,153,.18);
+      color: var(--green);
+    }
+    .mcp-masked {
+      background: rgba(251,191,36,.05); border-color: rgba(251,191,36,.2);
+      color: var(--amber);
+    }
+    .mcp-blocked {
+      background: rgba(248,113,113,.06); border-color: rgba(248,113,113,.2);
+      color: var(--red);
+    }
+    .mcp-info {
+      background: rgba(56,189,248,.05); border-color: rgba(56,189,248,.18);
+      color: var(--sky);
+    }
+    /* masked value highlight */
+    .masked-val { color: var(--amber); font-weight: 700; }
+
+    /* ── Error banner ── */
+    #error {
+      display: none; margin-top: 16px;
+      background: rgba(248,113,113,.07); border: 1px solid rgba(248,113,113,.2);
+      color: var(--red); border-radius: 10px; padding: 14px 18px; font-size: 13px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(7,7,15,.9); backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      padding: 10px 28px;
+      display: flex; align-items: center; gap: 16px;
+      font-size: 10px; color: var(--text-3); font-family: var(--mono);
+      z-index: 50;
+    }
+    .footer-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .footer-spacer { flex: 1; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="logo-mark">P</div>
+  <span class="header-name">PolicyMesh</span>
+  <span class="header-sep">/</span>
+  <span class="header-sub">Revenue & Customer Analytics</span>
+  <div class="header-pills">
+    <button class="pill pill-accent" onclick="showPop(this,'live')">Live</button>
+    <button class="pill" onclick="showPop(this,'mcp')">MCP</button>
+    <button class="pill" onclick="showPop(this,'pgvector')">pgvector</button>
+    <button class="pill" onclick="showPop(this,'rbac')">RBAC</button>
+    <button class="pill" onclick="showPop(this,'audit')">Audited</button>
+  </div>
+</header>
+
+<!-- Shared popover -->
+<div id="popover" role="dialog">
+  <div class="pop-title" id="pop-title"></div>
+  <div id="pop-body"></div>
+</div>
+
+<main class="main">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-eyebrow">PolicyMesh · Revenue & Customer Intelligence</div>
+    <h1 class="hero-title">Ask your business anything</h1>
+    <p class="hero-desc">Governed access to customer, revenue, product, and support data — every query policy-enforced and audit-logged.</p>
+  </div>
+
+  <!-- Tab switcher -->
+  <div class="tabs">
+    <button class="tab active" id="tab-ask"     onclick="switchTab('ask')">Ask</button>
+    <button class="tab"        id="tab-explore" onclick="switchTab('explore')">Explore</button>
+  </div>
+
+  <!-- Ask panel -->
+  <div id="panel-ask">
+  <!-- Query card -->
+  <div class="card">
+
+    <!-- Role selector -->
+    <p class="section-label">Access role</p>
+    <div class="roles">
+      <div class="role-card active" data-role="analyst" onclick="selectRole(this)">
+        <div class="role-name">analyst</div>
+        <div class="perm perm-ok">✓ Revenue & orders</div>
+        <div class="perm perm-ok">✓ Customer segments</div>
+        <div class="perm perm-no">✗ Email masked</div>
+      </div>
+      <div class="role-card" data-role="admin" onclick="selectRole(this)">
+        <div class="role-name">admin</div>
+        <div class="perm perm-ok">✓ Full access</div>
+        <div class="perm perm-ok">✓ PII visible</div>
+        <div class="perm perm-ok">✓ Support tickets</div>
+      </div>
+      <div class="role-card" data-role="viewer" onclick="selectRole(this)">
+        <div class="role-name">viewer</div>
+        <div class="perm perm-ok">✓ Products & orders</div>
+        <div class="perm perm-no">✗ Customer PII</div>
+        <div class="perm perm-no">✗ Support data</div>
+      </div>
+    </div>
+
+    <!-- Suggested questions -->
+    <p class="section-label">Try a question</p>
+    <div class="suggestions" id="suggestions"></div>
+
+    <!-- Question textarea -->
+    <textarea id="question" rows="3"
+      placeholder="e.g. Who are our top customers? Which products drive the most revenue?"></textarea>
+
+    <!-- Submit row -->
+    <div class="submit-row">
+      <span class="kbd-hint"><kbd>⌘</kbd> <kbd>↵</kbd> to send</span>
+      <button class="btn" id="submit" onclick="run()">
+        <span id="btn-text">Ask PolicyMesh</span>
+        <div class="dots" id="dots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="result">
+
+    <!-- Answer card -->
+    <div class="answer-card">
+      <div class="answer-header">
+        <span class="answer-hdr-label">Answer</span>
+        <span id="tag-role"  class="tag tag-gray"></span>
+        <span id="tag-stop"  class="tag"></span>
+        <span id="tag-steps" class="tag tag-gray" style="margin-left:2px"></span>
+      </div>
+      <div class="answer-body" id="answer-body"></div>
+    </div>
+
+    <!-- Steps -->
+    <button class="steps-hdr open" id="steps-hdr" onclick="toggleSteps()">
+      <span id="steps-label">Reasoning steps</span>
+      <span class="arrow">▶</span>
+    </button>
+    <div class="timeline open" id="timeline"></div>
+
+  </div>
+
+  <div id="error"></div>
+
+  </div><!-- /panel-ask -->
+
+  <!-- Explore panel -->
+  <div id="panel-explore" style="display:none">
+    <div id="explore-root"></div>
+  </div>
+
+</main>
+
+<!-- Footer status bar -->
+<footer class="footer">
+  <div class="footer-dot"></div>
+  <span id="footer-status">Connected</span>
+  <span id="footer-counts" style="color:var(--text-3)"></span>
+  <div class="footer-spacer"></div>
+  <span id="last-latency" style="color:var(--text-3)"></span>
+</footer>
+
+<script>
+// ── Suggestions ──────────────────────────────────────────────────────────
+const SUGGESTIONS = {
+  'Top customers by spend':     'Who are our top 3 customers by total spend?',
+  'Revenue by product':         'What is total revenue by product? Which earns the most?',
+  'Open critical tickets':      'Which support tickets are open and marked critical or high priority?',
+  'Most used product':          'Which product has the most orders and generates the most revenue?',
+  'Enterprise churn risk':      'Which enterprise customers have had no orders in the last 6 months?',
+  'PII data policy':            'What is the data governance and PII policy for customer data?',
+};
+
+const suggEl = document.getElementById('suggestions');
+Object.keys(SUGGESTIONS).forEach(label => {
+  const el = document.createElement('span');
+  el.className = 'sugg';
+  el.textContent = label;
+  el.onclick = () => {
+    document.getElementById('question').value = SUGGESTIONS[label];
+    document.getElementById('question').focus();
+  };
+  suggEl.appendChild(el);
+});
+
+// ── Role selector ─────────────────────────────────────────────────────────
+let currentRole = 'analyst';
+function selectRole(el) {
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentRole = el.dataset.role;
+}
+
+// ── Steps toggle ──────────────────────────────────────────────────────────
+let stepsOpen = true;
+function toggleSteps() {
+  stepsOpen = !stepsOpen;
+  const tl = document.getElementById('timeline');
+  const hdr = document.getElementById('steps-hdr');
+  tl.classList.toggle('open', stepsOpen);
+  hdr.classList.toggle('open', stepsOpen);
+}
+
+// ── SQL syntax highlighter ────────────────────────────────────────────────
+// Highlight BEFORE HTML-escaping so spans don't get double-escaped.
+function hlSQL(sql) {
+  // Step 1: tokenise strings first to avoid clobbering them
+  const STRING_PH = [];
+  let s = sql.replace(/'[^']*'/g, m => { STRING_PH.push(m); return `\x00STR${STRING_PH.length-1}\x00`; });
+
+  // Step 2: keyword / function highlighting on unescaped text
+  s = s.replace(/\b(SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|CROSS|ON|GROUP\s+BY|ORDER\s+BY|HAVING|LIMIT|OFFSET|DISTINCT|WITH|AS|AND|OR|NOT|IN|IS|NULL|CASE|WHEN|THEN|ELSE|END|ALL|UNION|SET|BY|ASC|DESC|INTO|VALUES)\b/gi,
+    m => `\x01KW\x02${m}\x01/KW\x02`)
+   .replace(/\b(SUM|COUNT|AVG|MAX|MIN|COALESCE|NULLIF|CAST|ROUND|FLOOR|CEIL|NOW|DATE|EXTRACT|LOWER|UPPER|LENGTH|TRIM)\b/gi,
+    m => `\x01FN\x02${m}\x01/FN\x02`)
+   .replace(/\b(\d+(?:\.\d+)?)\b/g,
+    m => `\x01NM\x02${m}\x01/NM\x02`);
+
+  // Step 3: HTML-escape the whole thing
+  s = s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // Step 4: restore placeholders as styled spans
+  s = s
+    .replace(/\x01KW\x02(.*?)\x01\/KW\x02/g, '<span class="kw">$1</span>')
+    .replace(/\x01FN\x02(.*?)\x01\/FN\x02/g, '<span class="fn">$1</span>')
+    .replace(/\x01NM\x02(.*?)\x01\/NM\x02/g, '<span class="nm">$1</span>');
+
+  // Step 5: restore string literals (HTML-escaped)
+  STRING_PH.forEach((str, i) => {
+    const escaped = str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    s = s.replace(`\x00STR${i}\x00`, `<span class="str">${escaped}</span>`);
+  });
+
+  return s;
+}
+
+// ── Citation rendering ────────────────────────────────────────────────────
+let citeSources = {};   // { "1": "SLA and Uptime Guarantees", ... }
+
+function renderAnswer(text) {
+  const safe = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return safe.replace(/\[(\d+)\]/g, (_, n) => {
+    const title = citeSources[n] ? ` title="[${n}] ${citeSources[n]}"` : '';
+    return `<span class="cite"${title}>${n}</span>`;
+  });
+}
+
+// ── Render one timeline step ──────────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Pill popovers ─────────────────────────────────────────────────────────
+let activePill = null;
+
+function closePop() {
+  document.getElementById('popover').classList.remove('open');
+  if (activePill) { activePill.classList.remove('active'); activePill = null; }
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#popover') && !e.target.closest('.pill')) closePop();
+});
+
+async function showPop(btn, type) {
+  if (activePill === btn) { closePop(); return; }
+  closePop();
+  activePill = btn;
+  btn.classList.add('active');
+
+  const pop = document.getElementById('popover');
+  const rect = btn.getBoundingClientRect();
+  pop.style.top  = (rect.bottom + 8) + 'px';
+  pop.style.right = (window.innerWidth - rect.right) + 'px';
+  pop.style.left  = 'auto';
+
+  document.getElementById('pop-body').innerHTML =
+    '<div style="color:var(--text-3);font-family:var(--mono);font-size:11px">Loading…</div>';
+  document.getElementById('pop-title').textContent = {
+    live:'System Status', mcp:'MCP Server', pgvector:'Vector Store',
+    rbac:'Access Policy', audit:'Audit Log'
+  }[type];
+  pop.classList.add('open');
+
+  try {
+    const html = await POPOVER_CONTENT[type]();
+    document.getElementById('pop-body').innerHTML = html;
+  } catch(e) {
+    document.getElementById('pop-body').innerHTML =
+      `<div class="pop-err">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+const POPOVER_CONTENT = {
+
+  async live() {
+    const data = await fetch('/health').then(r => r.json());
+    const ok = data.status === 'ok';
+    return `
+      <div class="pop-row">
+        <span class="pop-key">API</span>
+        <span class="pop-val ${ok?'pop-ok':'pop-err'}">${ok?'● online':'✗ offline'}</span>
+      </div>
+      <div class="pop-row">
+        <span class="pop-key">Database</span>
+        <span class="pop-val ${data.db==='connected'?'pop-ok':'pop-err'}">${esc(data.db)}</span>
+      </div>
+      <div class="pop-row">
+        <span class="pop-key">Provider</span>
+        <span class="pop-val pop-dim">Neon serverless Postgres</span>
+      </div>`;
+  },
+
+  async mcp() {
+    return `
+      <div class="pop-row">
+        <span class="pop-key">Server</span><span class="pop-val">policymesh-mcp v0.1.0</span>
+      </div>
+      <div class="pop-row">
+        <span class="pop-key">Transport</span><span class="pop-val">MCP 2.0 · SSE · GET /mcp/sse</span>
+      </div>
+      <div class="pop-row" style="align-items:center">
+        <span class="pop-key">query_sql</span>
+        <span class="pop-val" style="color:var(--violet)">parse→allowlist→EXPLAIN→read-only</span>
+      </div>
+      <div class="pop-row" style="align-items:center">
+        <span class="pop-key">search_docs</span>
+        <span class="pop-val" style="color:var(--sky)">embed→cosine→build_context</span>
+      </div>
+      <div class="pop-row" style="align-items:center">
+        <span class="pop-key">lookup_metadata</span>
+        <span class="pop-val" style="color:var(--amber)">role-filtered schema discovery</span>
+      </div>`;
+  },
+
+  async pgvector() {
+    return `
+      <div class="pop-row">
+        <span class="pop-key">Extension</span><span class="pop-val">pgvector 0.8.1</span>
+      </div>
+      <div class="pop-row">
+        <span class="pop-key">Model</span><span class="pop-val pop-dim">gemini-embedding-001</span>
+      </div>
+      <div class="pop-row">
+        <span class="pop-key">Dimensions</span><span class="pop-val">3072</span>
+      </div>
+      <div class="pop-row">
+        <span class="pop-key">Distance</span><span class="pop-val pop-dim">cosine (&lt;=&gt;)</span>
+      </div>
+      <div class="pop-row">
+        <span class="pop-key">Docs indexed</span><span class="pop-val">6 knowledge-base chunks</span>
+      </div>`;
+  },
+
+  async rbac() {
+    const roles = {
+      admin:   { customers: ['id','name','email','tier'], orders: ['id','customer_id','product','amount','created_at'] },
+      analyst: { customers: ['id','name','tier'], orders: ['id','customer_id','product','amount','created_at'] },
+      viewer:  { orders: ['product','amount','created_at'] },
+    };
+    return Object.entries(roles).map(([role, tables]) => {
+      const lines = Object.entries(tables)
+        .map(([t,cols]) => `<span style="color:var(--text-2)">${t}</span>: ${cols.join(', ')}`)
+        .join('<br>');
+      return `<div class="pop-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+        <span class="pop-key" style="font-family:var(--mono);color:var(--accent)">${role}</span>
+        <span style="color:var(--text-3);font-size:10px;line-height:1.6">${lines}</span>
+      </div>`;
+    }).join('');
+  },
+
+  async audit() {
+    const rows = await fetch('/audit?limit=8').then(r => r.json());
+    if (!rows.length) return '<div class="pop-dim">No entries yet.</div>';
+    return rows.map(r => {
+      const toolCls = r.tool==='query_sql' ? 'audit-tool-sql'
+                    : r.tool==='search_docs' ? 'audit-tool-docs' : 'audit-tool-meta';
+      const ts = r.ts.slice(11,19);
+      const count = r.row_count != null ? ` · ${r.row_count}r` : '';
+      const err = r.error ? ` <span class="audit-err">ERR</span>` : '';
+      return `<div class="audit-row">
+        <span style="color:var(--text-3)">${ts}</span>
+        <span style="color:var(--text-2);margin:0 5px">${esc(r.caller_role)}</span>
+        <span class="${toolCls}">${esc(r.tool)}</span>
+        <span style="color:var(--text-3)">${count} · ${r.duration_ms}ms${err}</span>
+      </div>`;
+    }).join('');
+  },
+};
+
+function renderStep(s, isLast) {
+  if (s.type !== 'tool_call') return '';
+
+  const isSql  = s.tool === 'query_sql';
+  const isDocs = s.tool === 'search_docs';
+  const result = s.result;
+  const hasErr = result?.error;
+
+  const nodeClass  = hasErr ? 't-node-err' : (isSql ? 't-node-sql' : 't-node-docs');
+  const toolClass  = isSql ? 'tool-sql' : 'tool-docs';
+  const inputLabel = isSql ? (s.input?.sql || '') : (s.input?.query || '');
+
+  // Meta count
+  let metaStr = '';
+  if (!hasErr) {
+    if (Array.isArray(result)) metaStr = `${result.length} row${result.length !== 1 ? 's' : ''}`;
+    else if (isDocs) metaStr = '4 chunks';
+  }
+
+  // Input block — hlSQL already escapes HTML; search query needs manual escaping
+  const inputHtml = isSql
+    ? `<div class="code-block">${hlSQL(inputLabel)}</div>`
+    : `<div class="code-block"><span style="color:var(--sky);margin-right:6px">⌕</span><span style="color:var(--text-2)">${esc(inputLabel)}</span></div>`;
+
+  // Result block
+  let resultHtml = '';
+  if (hasErr) {
+    resultHtml = `<div class="t-result err">⚠ ${esc(result.error)}</div>`;
+  } else if (Array.isArray(result) && result.length > 0) {
+    const row = result[0];
+    const cols = Object.entries(row).slice(0, 4)
+      .map(([k,v]) => {
+        const isMasked = String(v) === '***';
+        const valHtml = isMasked
+          ? `<span class="masked-val">***</span>`
+          : esc(String(v));
+        return `<span class="t-result-key">${esc(k)}</span> ${valHtml}`;
+      })
+      .join('  ·  ');
+    resultHtml = `<div class="t-result">${cols}${result.length > 1 ? ` <span style="color:var(--text-3)">+ ${result.length - 1} more</span>` : ''}</div>`;
+  } else if (Array.isArray(result) && result.length === 0) {
+    resultHtml = `<div class="t-result" style="color:var(--text-3)">Empty result</div>`;
+  } else if (typeof result === 'string') {
+    const titleMatch = result.match(/^\[1\]\s+(.+)$/m);
+    const snippet = result.replace(/^\[1\]\s+.+\nSource:[^\n]+\n/m, '').trim().slice(0, 140);
+    resultHtml = `
+      ${titleMatch ? `<div class="t-result" style="color:var(--text-2);font-weight:600;margin-bottom:5px">${esc(titleMatch[1])}</div>` : ''}
+      <div class="doc-pull">${esc(snippet)}${snippet.length >= 140 ? '…' : ''}</div>`;
+  }
+
+  // ── MCP enforcement trace ─────────────────────────────────────────────────
+  // Every tool call passes through the MCP boundary. Show which guard fired
+  // and what happened so it's obvious the governance is server-side, not prompt.
+  let traceHtml = '';
+  if (isSql || s.tool === 'lookup_metadata') {
+    if (hasErr) {
+      const err = result?.error || '';
+      let guard = 'policy check';
+      let detail = '';
+      if (err.includes('Only SELECT') || err.includes('parse error') || err.includes('Exactly one'))
+        { guard = 'SQL parser'; detail = 'non-SELECT rejected'; }
+      else if (err.includes('not in allowlist') || err.includes('Table(s) not in allowlist'))
+        { guard = 'table/column allowlist'; detail = err.match(/\[.*?\]|'[^']*'/)?.[0] || ''; }
+      else if (err.includes('not permitted'))
+        { guard = 'RBAC check'; detail = err.match(/table\(s\): \[.*?\]/i)?.[0] || ''; }
+      else if (err.includes('dry-run'))
+        { guard = 'EXPLAIN dry-run'; detail = 'planner rejected query'; }
+
+      traceHtml = `<div class="mcp-trace mcp-blocked">
+        <span class="mcp-trace-label">🔒 MCP boundary</span>
+        <span class="mcp-trace-sep">·</span>
+        <span class="mcp-trace-guard">${esc(guard)} <strong>✗ BLOCKED</strong></span>
+        ${detail ? `<span class="mcp-trace-sep">·</span><span style="opacity:.6">${esc(detail)}</span>` : ''}
+      </div>`;
+    } else {
+      const maskedCols = Array.isArray(result)
+        ? [...new Set(result.flatMap(r => Object.entries(r).filter(([,v]) => v === '***').map(([k]) => k)))]
+        : [];
+      if (maskedCols.length) {
+        traceHtml = `<div class="mcp-trace mcp-masked">
+          <span class="mcp-trace-label">🔒 MCP boundary</span>
+          <span class="mcp-trace-sep">·</span>
+          <span class="mcp-trace-guard">parse ✓ · allowlist ✓ · rbac ✓ · read-only ✓</span>
+          <span class="mcp-trace-sep">·</span>
+          <span><strong>masked:</strong> ${maskedCols.map(esc).join(', ')}</span>
+        </div>`;
+      } else {
+        traceHtml = `<div class="mcp-trace mcp-ok">
+          <span class="mcp-trace-label">🔒 MCP boundary</span>
+          <span class="mcp-trace-sep">·</span>
+          <span class="mcp-trace-guard">parse ✓ · allowlist ✓ · rbac ✓ · read-only ✓ · audit ✓</span>
+        </div>`;
+      }
+    }
+  } else if (isDocs) {
+    traceHtml = `<div class="mcp-trace mcp-info">
+      <span class="mcp-trace-label">🔒 MCP boundary</span>
+      <span class="mcp-trace-sep">·</span>
+      <span class="mcp-trace-guard">embed ✓ · cosine search ✓ · audit ✓</span>
+    </div>`;
+  }
+
+  return `
+<div class="t-item">
+  <div class="t-spine">
+    <div class="t-node ${nodeClass}">${s.step}</div>
+    ${!isLast ? '<div class="t-line"></div>' : ''}
+  </div>
+  <div class="t-body">
+    <div class="t-head">
+      <span class="tool-tag ${toolClass}">${s.tool}</span>
+      ${metaStr ? `<span class="t-meta">${metaStr}</span>` : ''}
+    </div>
+    ${inputHtml}
+    ${resultHtml}
+    ${traceHtml}
+  </div>
+</div>`;
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────
+document.getElementById('question').addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') run();
+});
+
+async function run() {
+  const q = document.getElementById('question').value.trim();
+  if (!q) return;
+
+  const btn = document.getElementById('submit');
+  btn.disabled = true;
+  document.getElementById('btn-text').style.display = 'none';
+  document.getElementById('dots').style.display = 'flex';
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('result').classList.remove('result-in');
+  document.getElementById('error').style.display = 'none';
+  citeSources = {};
+
+  const t0 = Date.now();
+
+  try {
+    const res = await fetch('/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q, caller_role: currentRole }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const latency = ((Date.now() - t0) / 1000).toFixed(1);
+
+    // Build citation map from search_docs results
+    (data.steps || []).forEach(s => {
+      if (s.tool === 'search_docs' && typeof s.result === 'string') {
+        [...s.result.matchAll(/^\[(\d+)\]\s+(.+)$/gm)].forEach(([,n,title]) => {
+          if (!citeSources[n]) citeSources[n] = title;
+        });
+      }
+    });
+
+    // Tags — classify stopped_reason before rendering anything
+    const stopped = data.stopped_reason || 'done';
+    const isError = stopped.startsWith('error:');
+    const stopEl = document.getElementById('tag-stop');
+
+    if (isError) {
+      stopEl.className = 'tag tag-red';
+      stopEl.textContent = 'error';
+
+      // Show a friendly error in the answer body, not the raw API response
+      const detail = stopped.replace(/^error:[^:]+:/, '').trim();
+      const friendly = detail.includes('Rate limit') || detail.includes('429')
+        ? 'Rate limit reached — the free tier resets daily at midnight UTC. Try again shortly.'
+        : detail.includes('tool_use_failed')
+        ? 'The model generated a malformed tool call. Retry your question.'
+        : 'LLM API error — see browser console for details.';
+      document.getElementById('answer-body').innerHTML =
+        `<span style="color:var(--red)">${esc(friendly)}</span>`;
+    } else {
+      stopEl.className = 'tag ' + (stopped === 'done' ? 'tag-green' : 'tag-amber');
+      stopEl.textContent = stopped;
+      document.getElementById('answer-body').innerHTML = renderAnswer(data.answer || '(no answer)');
+    }
+    document.getElementById('tag-role').textContent = currentRole;
+    document.getElementById('tag-steps').textContent =
+      `${data.step_count} step${data.step_count !== 1 ? 's' : ''}`;
+
+    // Timeline
+    const calls = (data.steps || []).filter(s => s.type === 'tool_call');
+    document.getElementById('timeline').innerHTML =
+      calls.map((s, i) => renderStep(s, i === calls.length - 1)).join('');
+    document.getElementById('steps-label').textContent = `Reasoning steps (${calls.length})`;
+
+    // Footer latency
+    document.getElementById('last-latency').textContent = `${latency}s`;
+
+    // Show
+    const resultEl = document.getElementById('result');
+    resultEl.style.display = 'block';
+    void resultEl.offsetWidth; // force reflow
+    resultEl.classList.add('result-in');
+
+    // Re-open steps
+    stepsOpen = true;
+    document.getElementById('timeline').classList.add('open');
+    document.getElementById('steps-hdr').classList.add('open');
+
+  } catch (err) {
+    const el = document.getElementById('error');
+    el.textContent = 'Request failed: ' + err.message;
+    el.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    document.getElementById('btn-text').style.display = '';
+    document.getElementById('dots').style.display = 'none';
+  }
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+let currentTab = 'ask';
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('panel-ask').style.display     = tab === 'ask'     ? '' : 'none';
+  document.getElementById('panel-explore').style.display = tab === 'explore' ? '' : 'none';
+  document.getElementById('tab-ask').classList.toggle('active',     tab === 'ask');
+  document.getElementById('tab-explore').classList.toggle('active', tab === 'explore');
+  if (tab === 'explore') loadExplore();
+}
+
+// ── Explore panel ──────────────────────────────────────────────────────────
+let exploreCache = {};   // { role: { tableName: data } }
+let openTable = null;
+
+// Re-load explore when role changes
+const _origSelectRole = selectRole;
+selectRole = function(el) {
+  _origSelectRole(el);
+  if (currentTab === 'explore') { exploreCache = {}; loadExplore(); }
+};
+
+async function loadExplore() {
+  const root = document.getElementById('explore-root');
+  root.innerHTML = '<div class="ex-loading">Loading tables…</div>';
+  openTable = null;
+
+  try {
+    const overview = await fetch(`/explore?role=${currentRole}`).then(r => r.json());
+    renderExploreGrid(overview.tables);
+  } catch(e) {
+    root.innerHTML = `<div style="color:var(--red);font-size:13px">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderExploreGrid(tables) {
+  const root = document.getElementById('explore-root');
+  if (!tables.length) {
+    root.innerHTML = '<div class="ex-loading">No tables accessible for this role.</div>';
+    return;
+  }
+  root.innerHTML = `<div class="explore-grid" id="explore-grid">
+    ${tables.map(t => `
+      <div class="ex-table-card" id="ex-card-${t.name}" onclick="toggleTableCard('${t.name}')">
+        <div class="ex-card-head">
+          <div>
+            <div class="ex-table-name">${esc(t.name)}</div>
+            <div style="font-size:10px;color:var(--text-3);margin-top:2px">${t.accessible_columns} columns visible</div>
+          </div>
+          <div class="ex-row-count">${t.row_count.toLocaleString()} rows</div>
+          <span class="ex-expand-arrow">▶</span>
+        </div>
+        <div class="ex-body" id="ex-body-${t.name}">
+          <div class="ex-loading">Loading…</div>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+async function toggleTableCard(tableName) {
+  const card = document.getElementById(`ex-card-${tableName}`);
+  const body = document.getElementById(`ex-body-${tableName}`);
+
+  // Close previously open card
+  if (openTable && openTable !== tableName) {
+    const prev = document.getElementById(`ex-card-${openTable}`);
+    if (prev) prev.classList.remove('open');
+  }
+
+  const isNowOpen = !card.classList.contains('open');
+  card.classList.toggle('open', isNowOpen);
+  openTable = isNowOpen ? tableName : null;
+
+  if (!isNowOpen) return;
+
+  // Check cache
+  if (exploreCache[currentRole]?.[tableName]) {
+    renderTableDetail(tableName, exploreCache[currentRole][tableName]);
+    return;
+  }
+
+  body.innerHTML = '<div class="ex-loading">Fetching schema + samples…</div>';
+
+  try {
+    const data = await fetch(`/explore/${tableName}?role=${currentRole}`).then(r => r.json());
+    if (data.error) {
+      body.innerHTML = `<div style="color:var(--red);font-size:12px">⚠ ${esc(data.error)}</div>`;
+      return;
+    }
+    exploreCache[currentRole] = exploreCache[currentRole] || {};
+    exploreCache[currentRole][tableName] = data;
+    renderTableDetail(tableName, data);
+  } catch(e) {
+    body.innerHTML = `<div style="color:var(--red)">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderTableDetail(tableName, data) {
+  const body = document.getElementById(`ex-body-${tableName}`);
+
+  // Column pills
+  const colsHtml = data.columns.map(c => {
+    const isRestricted = c.access === 'restricted';
+    return `<div class="ex-col ${isRestricted ? 'restricted' : ''}">
+      <span class="ex-col-name">${esc(c.name)}</span>
+      <span class="ex-col-type">${esc(c.type)}</span>
+      ${isRestricted ? '<span class="ex-restricted-badge">RESTRICTED</span>' : ''}
+    </div>`;
+  }).join('');
+
+  // Stat pills
+  const statPills = Object.entries(data.stats).map(([col, s]) => {
+    if (s.note === 'restricted') return '';
+    if (s.values) {
+      const top = s.values.slice(0,3).map(v => `${v.value}(${v.count})`).join(', ');
+      return `<div class="ex-stat-pill">${esc(col)}: <span>${esc(top)}${s.values.length > 3 ? '…' : ''}</span></div>`;
+    }
+    if (s.min !== undefined)
+      return `<div class="ex-stat-pill">${esc(col)}: <span>${esc(s.min)} – ${esc(s.max)}</span></div>`;
+    if (s.earliest)
+      return `<div class="ex-stat-pill">${esc(col)}: <span>${s.earliest.slice(0,10)} → ${s.latest.slice(0,10)}</span></div>`;
+    if (s.distinct !== undefined)
+      return `<div class="ex-stat-pill">${esc(col)}: <span>${s.distinct} distinct</span></div>`;
+    return '';
+  }).filter(Boolean).join('');
+
+  // Sample rows table
+  const visibleCols = data.columns.filter(c => true); // show all, mask restricted
+  const thHtml = visibleCols.map(c =>
+    `<th>${esc(c.name)}${c.access === 'restricted' ? ' 🔒' : ''}</th>`
+  ).join('');
+  const tdRows = data.sample.map(row =>
+    `<tr>${visibleCols.map(c => {
+      const v = row[c.name];
+      const masked = v === '***';
+      return `<td class="${masked ? 'ex-masked-cell' : ''}">${esc(v ?? '—')}</td>`;
+    }).join('')}</tr>`
+  ).join('');
+
+  body.innerHTML = `
+    <div class="section-label" style="margin-bottom:8px">Columns</div>
+    <div class="ex-cols">${colsHtml}</div>
+
+    ${statPills ? `<div class="section-label" style="margin-bottom:8px">Stats</div>
+    <div class="ex-stats">${statPills}</div>` : ''}
+
+    <div class="ex-sample-label">Sample rows (${data.sample.length})</div>
+    <div style="overflow-x:auto">
+      <table class="ex-tbl">
+        <thead><tr>${thHtml}</tr></thead>
+        <tbody>${tdRows}</tbody>
+      </table>
+    </div>
+
+    <div class="mcp-trace mcp-ok" style="margin-top:12px">
+      🔒 MCP boundary · rbac ✓ · ${data.columns.filter(c=>c.access==='restricted').length} column(s) restricted · audit ✓
+    </div>`;
+}
+
+// ── Live footer stats ─────────────────────────────────────────────────────
+async function loadFooterStats() {
+  try {
+    const data = await fetch('/explore?role=admin').then(r => r.json());
+    const tables = data.tables || [];
+    const customers = tables.find(t => t.name === 'customers')?.row_count ?? 0;
+    const orders    = tables.find(t => t.name === 'orders')?.row_count ?? 0;
+    const tickets   = tables.find(t => t.name === 'tickets')?.row_count ?? 0;
+    document.getElementById('footer-counts').textContent =
+      `${customers} customers · ${orders} orders · ${tickets} tickets · ${tables.length} tables`;
+  } catch { /* footer is non-critical */ }
+}
+loadFooterStats();
+</script>
+</body>
+</html>
