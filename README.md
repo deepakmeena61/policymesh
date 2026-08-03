@@ -2,6 +2,8 @@
 
 > Every query is SQL-validated, access-controlled by role, PII-masked, and audit-logged before a single row is returned. Governance lives at the MCP tool boundary — enforced in code, not in the prompt.
 
+**[Live demo →](https://policymesh-5zv6.onrender.com)**
+
 ---
 
 ## What it does
