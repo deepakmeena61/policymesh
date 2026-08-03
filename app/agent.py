@@ -11,6 +11,7 @@
 #   {"role": "tool", "tool_call_id": ..., ...}  ← one message per result
 import json
 import os
+import re
 
 from groq import AsyncGroq
 
@@ -159,6 +160,24 @@ async def _execute_tool(name: str, arguments_json: str, caller_role: str) -> str
     return json.dumps({"error": f"Unknown tool: {name!r}"})
 
 
+def _parse_malformed_tool_call(error_str: str) -> tuple[str, str] | None:
+    """
+    LLaMA 3.3 70B on Groq occasionally emits tool-call XML missing the '>'
+    separator:  <function=search_docs{"query": "..."}></function>
+    instead of: <function=search_docs>{"query": "..."}</function>
+
+    When Groq rejects it as tool_use_failed, the intended call is still in
+    'failed_generation'. Parse it and execute the tool directly so we don't
+    surface a useless error to the user.
+    """
+    # Unescape the error string so embedded quotes are readable
+    clean = error_str.replace('\\"', '"').replace("\\'", "'")
+    match = re.search(r"<function=(\w+)(\{.*?\})</function>", clean, re.DOTALL)
+    if match:
+        return match.group(1), match.group(2)
+    return None
+
+
 async def run_agent(question: str, caller_role: str) -> dict:
     # Returns: answer, steps (ordered tool_call + answer records), stopped_reason, step_count.
     client = AsyncGroq(api_key=os.environ["GROQ_API_KEY"])
@@ -184,10 +203,45 @@ async def run_agent(question: str, caller_role: str) -> dict:
             )
             llm_retries = 0
         except Exception as exc:
-            if "tool_use_failed" in str(exc) and llm_retries < MAX_LLM_RETRIES:
-                # Malformed tool-call XML from Groq — retry without state change.
-                llm_retries += 1
-                continue
+            exc_str = str(exc)
+            if "tool_use_failed" in exc_str:
+                # LLaMA sometimes emits malformed XML: <function=NAME{args}</function>
+                # (missing > after name). Parse the intended call and execute directly
+                # rather than retrying the same broken request.
+                salvaged = _parse_malformed_tool_call(exc_str)
+                if salvaged:
+                    s_name, s_args = salvaged
+                    try:
+                        result_str = await _execute_tool(s_name, s_args, caller_role)
+                        try:
+                            result_display = json.loads(result_str)
+                        except json.JSONDecodeError:
+                            result_display = result_str
+                        steps.append({
+                            "step": len(steps) + 1,
+                            "type": "tool_call",
+                            "tool": s_name,
+                            "input": json.loads(s_args),
+                            "result": result_display,
+                        })
+                        tool_calls_made += 1
+                        # Inject result as a user context message so the LLM
+                        # can synthesise an answer from it on the next turn.
+                        messages.append({
+                            "role": "user",
+                            "content": (
+                                f"I retrieved the following via {s_name}:\n\n"
+                                f"{result_str[:3000]}\n\n"
+                                "Please answer the original question using only this information."
+                            ),
+                        })
+                        llm_retries = 0
+                        continue
+                    except Exception:
+                        pass  # fall through to normal retry
+                if llm_retries < MAX_LLM_RETRIES:
+                    llm_retries += 1
+                    continue
             stopped_reason = f"error:llm_api:{exc}"
             break
 

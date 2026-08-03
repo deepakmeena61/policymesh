@@ -9,23 +9,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:          #0b0e15;
-      --surface:     #10141e;
-      --surface-2:   #131824;
-      --surface-3:   #171c2a;
-      --border:      #1d2233;
-      --border-2:    #26304a;
-      --accent:      #4f7df4;
-      --accent-dim:  #3d6ae8;
-      --accent-glow: rgba(79,125,244,0.11);
-      --text:        #e2e8f0;
-      --text-2:      #94a3b8;
-      --text-3:      #546070;
-      --violet:      #a78bfa;
-      --sky:         #38bdf8;
-      --green:       #34d399;
-      --amber:       #fbbf24;
-      --red:         #f87171;
+      --bg:          #0d1117;
+      --surface:     #161b22;
+      --surface-2:   #1c2128;
+      --surface-3:   #21262d;
+      --border:      #21262d;
+      --border-2:    #30363d;
+      --accent:      #58a6ff;
+      --accent-dim:  #388bfd;
+      --accent-glow: rgba(88,166,255,0.10);
+      --text:        #e6edf3;
+      --text-2:      #8b949e;
+      --text-3:      #6e7681;
+      --violet:      #bc8cff;
+      --sky:         #79c0ff;
+      --green:       #3fb950;
+      --amber:       #e3b341;
+      --red:         #f85149;
       --font:        'Inter', system-ui, sans-serif;
       --mono:        'JetBrains Mono', 'Fira Code', monospace;
     }
@@ -50,8 +50,8 @@
       content: '';
       position: fixed; inset: 0;
       background-image:
-        linear-gradient(rgba(79,125,244,0.015) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(79,125,244,0.015) 1px, transparent 1px);
+        linear-gradient(rgba(88,166,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(88,166,255,0.015) 1px, transparent 1px);
       background-size: 48px 48px;
       pointer-events: none;
       z-index: 0;
@@ -69,12 +69,12 @@
     }
     .logo-mark {
       width: 26px; height: 26px;
-      background: linear-gradient(135deg, #4f7df4 0%, #6d9cf8 100%);
+      background: linear-gradient(135deg, #388bfd 0%, #58a6ff 100%);
       border-radius: 7px;
       display: flex; align-items: center; justify-content: center;
       font-size: 11px; font-weight: 800; color: #fff;
       letter-spacing: -0.5px;
-      box-shadow: 0 0 16px rgba(79,125,244,0.4);
+      box-shadow: 0 0 16px rgba(88,166,255,0.4);
       flex-shrink: 0;
     }
     .header-name {
@@ -99,7 +99,7 @@
     }
     .pill:hover { border-color: var(--accent); color: var(--text-2); }
     .pill.active { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
-    .pill-accent { border-color: rgba(79,125,244,0.35); color: var(--accent); background: var(--accent-glow); }
+    .pill-accent { border-color: rgba(88,166,255,0.35); color: var(--accent); background: var(--accent-glow); }
 
     /* ── Popover panel ── */
     #popover {
@@ -110,7 +110,7 @@
       border-radius: 12px;
       padding: 16px 18px;
       min-width: 260px; max-width: 400px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(79,125,244,.1);
+      box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(88,166,255,.1);
       font-size: 12px;
     }
     #popover.open { display: block; animation: popIn .15s cubic-bezier(.16,1,.3,1); }
@@ -152,7 +152,7 @@
       display: inline-flex; align-items: center; gap: 6px;
       font-size: 10px; font-weight: 700; letter-spacing: 2px;
       text-transform: uppercase; color: var(--accent);
-      background: var(--accent-glow); border: 1px solid rgba(79,125,244,0.25);
+      background: var(--accent-glow); border: 1px solid rgba(88,166,255,0.25);
       padding: 4px 12px; border-radius: 20px; margin-bottom: 18px;
     }
     .hero-eyebrow::before {
@@ -167,10 +167,10 @@
     .hero-title {
       font-size: 40px; font-weight: 800; line-height: 1.08;
       letter-spacing: -2px;
-      background: linear-gradient(145deg, #f1f5f9 0%, #bdd1fb 45%, #90b4f7 100%);
+      background: linear-gradient(145deg, #f0f6fc 0%, #a5d6ff 45%, #79c0ff 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       margin-bottom: 14px;
-      filter: drop-shadow(0 0 40px rgba(79,125,244,.25));
+      filter: drop-shadow(0 0 40px rgba(88,166,255,.25));
     }
     .hero-desc {
       font-size: 14px; color: var(--text-3); line-height: 1.7;
@@ -191,7 +191,7 @@
       content: '';
       position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
       width: 60%; height: 120px; border-radius: 50%;
-      background: radial-gradient(ellipse, rgba(79,125,244,0.12) 0%, transparent 70%);
+      background: radial-gradient(ellipse, rgba(88,166,255,0.12) 0%, transparent 70%);
       pointer-events: none;
     }
 
@@ -202,31 +202,41 @@
       margin-bottom: 10px;
     }
 
-    /* ── Role cards ── */
-    .roles { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 22px; }
-    .role-card {
-      padding: 12px 14px;
-      background: var(--surface-2);
+    /* ── Role toggle ── */
+    .role-toggle-row {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 18px;
+    }
+    .role-toggle-label {
+      font-size: 11px; color: var(--text-3); font-weight: 500; white-space: nowrap;
+    }
+    .role-pills { display: flex; gap: 6px; position: relative; }
+    .role-pill {
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      padding: 5px 14px; border-radius: 20px;
       border: 1px solid var(--border-2);
-      border-radius: 10px;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-      user-select: none;
+      background: var(--surface-2); color: var(--text-2);
+      cursor: pointer; transition: all 0.15s; position: relative;
     }
-    .role-card:hover { border-color: rgba(79,125,244,0.4); }
-    .role-card.active {
-      border-color: var(--accent);
+    .role-pill:hover { border-color: var(--accent); color: var(--text); }
+    .role-pill.active {
+      border-color: var(--accent); color: var(--accent);
       background: var(--accent-glow);
-      box-shadow: 0 0 0 1px var(--accent), inset 0 0 20px rgba(79,125,244,0.05);
+      box-shadow: 0 0 0 1px rgba(88,166,255,0.2);
     }
-    .role-name {
-      font-family: var(--mono); font-size: 12px; font-weight: 600;
-      color: var(--text); margin-bottom: 8px;
+    /* Tooltip on hover */
+    .role-pill .role-tip {
+      display: none; position: absolute; top: calc(100% + 8px); left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface-3); border: 1px solid var(--border-2);
+      border-radius: 8px; padding: 8px 12px; z-index: 50;
+      white-space: nowrap; font-family: var(--font); font-size: 10px;
+      color: var(--text-2); box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      pointer-events: none;
     }
-    .perm { font-size: 10px; display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
-    .perm:last-child { margin-bottom: 0; }
-    .perm-ok  { color: var(--green); }
-    .perm-no  { color: var(--text-3); }
+    .role-pill .role-tip p { line-height: 1.6; }
+    .role-pill .role-tip .tip-ok  { color: var(--green); }
+    .role-pill .role-tip .tip-no  { color: var(--text-3); }
+    .role-pill:hover .role-tip { display: block; }
 
     /* ── Suggestions ── */
     .suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
@@ -255,14 +265,14 @@
     kbd { padding: 1px 5px; border: 1px solid var(--border-2); border-radius: 4px; font-size: 10px; font-family: var(--mono); }
     .btn {
       padding: 9px 22px;
-      background: linear-gradient(135deg, #4f7df4, #6d9cf8);
+      background: linear-gradient(135deg, #388bfd, #58a6ff);
       color: #fff; font-size: 13px; font-weight: 600; font-family: var(--font);
       border: none; border-radius: 9px; cursor: pointer;
       transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
       display: flex; align-items: center; gap: 8px;
-      box-shadow: 0 4px 20px rgba(79,125,244,0.35);
+      box-shadow: 0 4px 20px rgba(88,166,255,0.35);
     }
-    .btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(79,125,244,0.45); }
+    .btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(88,166,255,0.45); }
     .btn:active:not(:disabled) { transform: translateY(0); }
     .btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
 
@@ -297,11 +307,11 @@
     .tag-amber { background: rgba(251,191,36,.1); color: var(--amber); border: 1px solid rgba(251,191,36,.2); }
     .tag-red   { background: rgba(248,113,113,.1); color: var(--red);  border: 1px solid rgba(248,113,113,.2); }
     .tag-gray  { background: rgba(74,85,104,.15);  color: var(--text-3); border: 1px solid var(--border-2); }
-    .tag-accent{ background: var(--accent-glow);   color: var(--accent); border: 1px solid rgba(79,125,244,.3); }
+    .tag-accent{ background: var(--accent-glow);   color: var(--accent); border: 1px solid rgba(88,166,255,.3); }
     .answer-body {
       padding: 20px 20px 20px 22px;
       font-size: 14px; line-height: 1.75; color: var(--text);
-      border-left: 3px solid rgba(79,125,244,0.35);
+      border-left: 3px solid rgba(88,166,255,0.35);
       margin-left: 0;
     }
 
@@ -310,13 +320,13 @@
       display: inline-flex; align-items: center; justify-content: center;
       min-width: 15px; height: 15px; padding: 0 3px;
       font-size: 8px; font-weight: 800; font-family: var(--mono);
-      background: rgba(79,125,244,.14); border: 1px solid rgba(79,125,244,.35);
+      background: rgba(88,166,255,.14); border: 1px solid rgba(88,166,255,.35);
       color: var(--accent); border-radius: 4px;
       vertical-align: super; line-height: 1;
       cursor: help; transition: background .12s, border-color .12s;
       margin: 0 1px; position: relative;
     }
-    .cite:hover { background: rgba(79,125,244,.28); border-color: var(--accent); }
+    .cite:hover { background: rgba(88,166,255,.28); border-color: var(--accent); }
 
     /* ── Steps section ── */
     .steps-hdr {
@@ -525,6 +535,11 @@
     }
     .footer-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
     .footer-spacer { flex: 1; }
+    .footer-stat {
+      cursor: pointer; color: var(--text-3);
+      transition: color 0.15s;
+    }
+    .footer-stat:hover { color: var(--accent); }
   </style>
 </head>
 <body>
@@ -571,25 +586,33 @@
   <div class="card">
 
     <!-- Role selector -->
-    <p class="section-label">Access role</p>
-    <div class="roles">
-      <div class="role-card active" data-role="analyst" onclick="selectRole(this)">
-        <div class="role-name">analyst</div>
-        <div class="perm perm-ok">✓ Revenue & orders</div>
-        <div class="perm perm-ok">✓ Customer segments</div>
-        <div class="perm perm-no">✗ Email masked</div>
-      </div>
-      <div class="role-card" data-role="admin" onclick="selectRole(this)">
-        <div class="role-name">admin</div>
-        <div class="perm perm-ok">✓ Full access</div>
-        <div class="perm perm-ok">✓ PII visible</div>
-        <div class="perm perm-ok">✓ Support tickets</div>
-      </div>
-      <div class="role-card" data-role="viewer" onclick="selectRole(this)">
-        <div class="role-name">viewer</div>
-        <div class="perm perm-ok">✓ Products & orders</div>
-        <div class="perm perm-no">✗ Customer PII</div>
-        <div class="perm perm-no">✗ Support data</div>
+    <div class="role-toggle-row">
+      <span class="role-toggle-label">Viewing as</span>
+      <div class="role-pills">
+        <button class="role-pill active" data-role="analyst" onclick="selectRole(this)">
+          analyst
+          <div class="role-tip">
+            <p><span class="tip-ok">✓</span> Revenue &amp; orders</p>
+            <p><span class="tip-ok">✓</span> Customer segments</p>
+            <p><span class="tip-no">✗</span> Email masked</p>
+          </div>
+        </button>
+        <button class="role-pill" data-role="admin" onclick="selectRole(this)">
+          admin
+          <div class="role-tip">
+            <p><span class="tip-ok">✓</span> Full access</p>
+            <p><span class="tip-ok">✓</span> PII visible</p>
+            <p><span class="tip-ok">✓</span> Support tickets</p>
+          </div>
+        </button>
+        <button class="role-pill" data-role="viewer" onclick="selectRole(this)">
+          viewer
+          <div class="role-tip">
+            <p><span class="tip-ok">✓</span> Products &amp; orders</p>
+            <p><span class="tip-no">✗</span> Customer PII</p>
+            <p><span class="tip-no">✗</span> Support data</p>
+          </div>
+        </button>
       </div>
     </div>
 
@@ -598,8 +621,7 @@
     <div class="suggestions" id="suggestions"></div>
 
     <!-- Question textarea -->
-    <textarea id="question" rows="3"
-      placeholder="e.g. Who are our top customers? Which products drive the most revenue?"></textarea>
+    <textarea id="question" rows="3" placeholder=""></textarea>
 
     <!-- Submit row -->
     <div class="submit-row">
@@ -682,7 +704,7 @@ Object.keys(SUGGESTIONS).forEach(label => {
 // ── Role selector ─────────────────────────────────────────────────────────
 let currentRole = 'analyst';
 function selectRole(el) {
-  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.role-pill').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   currentRole = el.dataset.role;
 }
@@ -1123,6 +1145,8 @@ selectRole = function(el) {
   _origSelectRole(el);
   if (currentTab === 'explore') { exploreCache = {}; loadExplore(); }
 };
+// Keep role-pill class in sync when explore overrides selection
+
 
 async function loadExplore() {
   const root = document.getElementById('explore-root');
@@ -1261,7 +1285,31 @@ function renderTableDetail(tableName, data) {
     </div>`;
 }
 
-// ── Live footer stats ─────────────────────────────────────────────────────
+// ── Cycling placeholder ───────────────────────────────────────────────────
+const PLACEHOLDERS = Object.values(SUGGESTIONS);
+let _phIdx = 0;
+let _phInterval = null;
+const _ta = document.getElementById('question');
+
+function _setPlaceholder(text) {
+  _ta.setAttribute('placeholder', text);
+}
+function _startCycle() {
+  _setPlaceholder(PLACEHOLDERS[_phIdx]);
+  _phInterval = setInterval(() => {
+    _phIdx = (_phIdx + 1) % PLACEHOLDERS.length;
+    _setPlaceholder(PLACEHOLDERS[_phIdx]);
+  }, 3000);
+}
+function _stopCycle() {
+  clearInterval(_phInterval);
+  _ta.setAttribute('placeholder', '');
+}
+_ta.addEventListener('focus', _stopCycle);
+_ta.addEventListener('blur', () => { if (!_ta.value.trim()) _startCycle(); });
+_startCycle();
+
+// ── Live footer stats (clickable) ────────────────────────────────────────
 async function loadFooterStats() {
   try {
     const data = await fetch('/explore?role=admin').then(r => r.json());
@@ -1269,9 +1317,20 @@ async function loadFooterStats() {
     const customers = tables.find(t => t.name === 'customers')?.row_count ?? 0;
     const orders    = tables.find(t => t.name === 'orders')?.row_count ?? 0;
     const tickets   = tables.find(t => t.name === 'tickets')?.row_count ?? 0;
-    document.getElementById('footer-counts').textContent =
-      `${customers} customers · ${orders} orders · ${tickets} tickets · ${tables.length} tables`;
+    const n         = tables.length;
+    // Each stat is a clickable span — clicking opens Explore on that table
+    document.getElementById('footer-counts').innerHTML =
+      `<span class="footer-stat" onclick="openExploreTable('customers')">${customers} customers</span>` +
+      ` · <span class="footer-stat" onclick="openExploreTable('orders')">${orders} orders</span>` +
+      ` · <span class="footer-stat" onclick="openExploreTable('tickets')">${tickets} tickets</span>` +
+      ` · <span class="footer-stat" onclick="switchTab('explore')">${n} tables</span>`;
   } catch { /* footer is non-critical */ }
+}
+
+function openExploreTable(tableName) {
+  switchTab('explore');
+  // Give the explore grid a tick to render, then auto-open the card
+  setTimeout(() => toggleTableCard(tableName), 150);
 }
 loadFooterStats();
 </script>
