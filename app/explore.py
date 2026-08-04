@@ -4,13 +4,16 @@
 from typing import Any
 
 from app.db import get_pool
-from app.policy import ROLE_POLICY, mask_rows
+from app.policy import AccessDenied, ROLE_POLICY, mask_rows
 
 
 async def explore_table(table: str, caller_role: str) -> dict:
+    # AccessDenied (a PermissionError) — not a bare ValueError — so an unknown role
+    # is handled the same way here as everywhere else in the app: a typed JSON error,
+    # not an unhandled 500. See app/policy.py:check_access for the same convention.
     role_policy = ROLE_POLICY.get(caller_role)
     if role_policy is None:
-        raise ValueError(f"Unknown role: {caller_role!r}")
+        raise AccessDenied(f"Unknown role: {caller_role!r}. No policy defined.")
 
     # Table name is validated against ROLE_POLICY before it ever reaches a query,
     # so the f-string interpolation below is safe — no untrusted input reaches the DB.

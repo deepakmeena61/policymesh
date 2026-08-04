@@ -1,11 +1,12 @@
 # FastAPI application entry point — routes, lifespan, and startup validation.
 import asyncio
 import os
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -14,6 +15,7 @@ from app.agent import run_agent
 from app.db import close_pool, get_pool
 from app.explore import explore_all, explore_table
 from app.mcp_server import mcp
+from app.policy import ROLE_POLICY
 
 _STATIC = Path(__file__).parent / "static"
 
@@ -59,6 +61,16 @@ _ASK_TIMEOUT = int(os.getenv("ASK_TIMEOUT_SECONDS", "60"))
 
 @app.post("/ask")
 async def ask(req: AskRequest):
+    # Reject an unknown role before spending a single LLM call: without this, an
+    # invalid caller_role silently burns the full MAX_STEPS budget on lookup_metadata
+    # calls that return nothing useful (empty tables), then produces a garbled answer.
+    if req.caller_role not in ROLE_POLICY:
+        return {
+            "answer": f"Unknown role {req.caller_role!r}. Valid roles: {', '.join(sorted(ROLE_POLICY))}.",
+            "steps": [],
+            "stopped_reason": "error:unknown_role",
+            "step_count": 0,
+        }
     try:
         return await asyncio.wait_for(
             run_agent(req.question, req.caller_role),
@@ -87,25 +99,28 @@ async def explore_overview(role: str = "analyst"):
 @app.get("/explore/{table}")
 async def explore_one(table: str, role: str = "analyst"):
     """Schema, sample rows, and stats for a single table — same masking as MCP tools."""
+    start = time.monotonic()
     try:
         result = await explore_table(table, role)
         await audit.record(
             caller_role=role, tool="explore",
             input_data={"table": table},
-            row_count=result["row_count"], error=None, duration_ms=0,
+            row_count=result["row_count"], error=None,
+            duration_ms=int((time.monotonic() - start) * 1000),
         )
         return result
     except PermissionError as e:
         await audit.record(
             caller_role=role, tool="explore",
             input_data={"table": table},
-            row_count=None, error=str(e), duration_ms=0,
+            row_count=None, error=str(e),
+            duration_ms=int((time.monotonic() - start) * 1000),
         )
         return {"error": str(e)}
 
 
 @app.get("/audit")
-async def audit_log(limit: int = 50):
+async def audit_log(limit: int = Query(default=50, ge=1, le=500)):
     """Recent tool calls from the audit log — newest first."""
     pool = await get_pool()
     async with pool.acquire() as conn:

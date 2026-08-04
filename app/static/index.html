@@ -1074,13 +1074,21 @@ async function run() {
       stopEl.className = 'tag tag-red';
       stopEl.textContent = 'error';
 
-      // Show a friendly error in the answer body, not the raw API response
-      const detail = stopped.replace(/^error:[^:]+:/, '').trim();
-      const friendly = detail.includes('Rate limit') || detail.includes('429')
-        ? 'Rate limit reached — the free tier resets daily at midnight UTC. Try again shortly.'
-        : detail.includes('tool_use_failed')
-        ? 'The model generated a malformed tool call. Retry your question.'
-        : 'LLM API error — see browser console for details.';
+      // Prefer the backend's own message when it gave one — timeouts and an
+      // unknown/invalid role both come back with a specific, already-friendly
+      // `answer` string. Only the error:llm_api:* path returns no answer at
+      // all (see app/agent.py — it breaks the loop before any "answer" or
+      // "forced_answer" step is appended), so that's the one case we still
+      // need to synthesize a message for from the raw exception text.
+      let friendly = data.answer;
+      if (!friendly) {
+        const detail = stopped.replace(/^error:[^:]+:/, '').trim();
+        friendly = detail.includes('Rate limit') || detail.includes('429')
+          ? 'Rate limit reached — the free tier resets daily at midnight UTC. Try again shortly.'
+          : detail.includes('tool_use_failed')
+          ? 'The model generated a malformed tool call. Retry your question.'
+          : 'LLM API error — see browser console for details.';
+      }
       document.getElementById('answer-body').innerHTML =
         `<span style="color:var(--red)">${esc(friendly)}</span>`;
     } else {
