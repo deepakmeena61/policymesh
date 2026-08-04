@@ -84,16 +84,18 @@ graph TD
 **Why a custom agent loop, not LangChain/LangGraph.**
 The loop is 80 lines with explicit termination conditions, state as a flat messages list, and a hard step cap. LangGraph adds ~400 lines of framework surface area, a new graph DSL to explain, and hides the termination logic inside abstractions. For a governed system, the control flow must be auditable — a `while True` is auditable; a graph runtime is not.
 
-**Two eval axes** (per the CLAUDE.md spec):
-- Tool-selection accuracy: **100%** (6/6, threshold 83%)
-- Groundedness: **80%** (LLM-as-judge via Groq, threshold 80%)
+**Two eval axes** (per the CLAUDE.md spec), pass thresholds enforced in `tests/test_eval.py`:
+- Tool-selection accuracy — deterministic check, threshold **83%** (5/6)
+- Groundedness — LLM-as-judge via Groq, threshold **80%**
+
+Both hit a live LLM against a free-tier key, so the exact score varies run-to-run and dips if the day's Groq/Gemini free-tier quota is already partly spent (e.g. from repeated manual testing, or firing `scripts/stress_test.py` right before). Run `pytest tests/test_eval.py -v -m eval -s` for a current read rather than trusting a cached number.
 
 ## Tech stack
 
 | Layer | Choice | Why |
 |-------|--------|-----|
 | API | FastAPI (async) | Non-blocking I/O for DB + embedding calls |
-| LLM agent | LLaMA 3.3 70B (Groq) | Free tier, tool calling, OpenAI-compatible API |
+| LLM agent | LLaMA 3.3 70B (Groq), auto-fallback to Gemini 2.5 Flash | Free tier, tool calling; both speak the OpenAI-compatible chat API, so the fallback is a drop-in swap on a 429 (`app/agent.py:_llm_providers`) |
 | Embeddings | Gemini embedding-001 | Free tier, 3072-dim, strong semantic quality |
 | Database | Neon (serverless Postgres) | pgvector built-in, free tier, matches local dev |
 | Vector search | pgvector `<=>` cosine | Native Postgres, no separate vector DB needed |
@@ -180,7 +182,9 @@ tests/
 | **Dynamic roles** | `ROLE_POLICY` is startup config | Move to DB-backed policy table; make `check_access()` async with short cache |
 | **Data lineage** | Not tracked | Extend `audit_log` with a `lineage` JSONB column recording upstream table dependencies per query |
 | **Warehouse scale** | Neon Postgres only | `search_raw()` in `docs.py` is the only pgvector call — swap for Databricks Vector Search / Pinecone without touching governance layer |
-| **LLM provider** | Groq free tier (100k tokens/day) | Drop-in swap via `AGENT_MODEL` env var; governance is LLM-agnostic |
+| **LLM provider quota** | Groq free tier (100k tokens/day) with Gemini fallback on 429 (`app/agent.py:_llm_providers`) — both are still free-tier, so a burst of rapid requests (the eval suite, `scripts/stress_test.py`, or heavy manual testing) can exhaust both in one sitting | A paid tier or self-hosted model removes the ceiling entirely; governance is LLM-agnostic via `AGENT_MODEL` / `GEMINI_FALLBACK_MODEL` |
+| **Column enforcement timing** | `check_access()` only validates table-level access; a restricted column's real value is fetched from Postgres into the app process and is redacted by `mask_rows()` only afterward, not rejected pre-query | Column-level `GRANT` on a read-only Postgres role — the DB itself refuses to return the column, closing this the same way it closes the alias-bypass row above |
+| **Governance boundary duplication** | The same enforcement sequence (`parse → check_access → validate_and_run → mask_rows → audit`) is implemented twice: once for the internal agent loop (`app/agent.py:_execute_tool`) and once for external MCP clients (`app/mcp_server.py`) | Have the agent loop call the MCP tool functions directly instead of re-implementing them, so there is exactly one enforcement path instead of two kept in sync by hand |
 
 ---
 
