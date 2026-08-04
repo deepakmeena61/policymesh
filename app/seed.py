@@ -316,50 +316,57 @@ async def seed() -> None:
                 "TRUNCATE tickets, events, orders, products, customers RESTART IDENTITY CASCADE"
             )
 
-        # ── Customers ──────────────────────────────────────────────────────
-        customer_ids = []
-        for name, email, tier in CUSTOMERS:
-            cid = await conn.fetchval(
-                "INSERT INTO customers (name, email, tier) VALUES ($1, $2, $3) RETURNING id",
-                name, email, tier,
-            )
-            customer_ids.append(cid)
+        # All inserts happen atomically: without this, a crash partway through
+        # (network blip, one bad row) leaves the DB half-seeded — and worse, the
+        # idempotency check above only looks at `customers`, so a broken partial
+        # seed would look "already present" on the next run and stay broken.
+        # A single transaction means any failure rolls back to nothing, so a
+        # re-run without --reset correctly sees count == 0 and seeds cleanly.
+        async with conn.transaction():
+            # ── Customers ──────────────────────────────────────────────────
+            customer_ids = []
+            for name, email, tier in CUSTOMERS:
+                cid = await conn.fetchval(
+                    "INSERT INTO customers (name, email, tier) VALUES ($1, $2, $3) RETURNING id",
+                    name, email, tier,
+                )
+                customer_ids.append(cid)
 
-        # ── Orders ─────────────────────────────────────────────────────────
-        for cust_idx, product, amount, days_ago in ORDERS:
-            cid = customer_ids[cust_idx]
-            await conn.execute(
-                "INSERT INTO orders (customer_id, product, amount, created_at) VALUES ($1,$2,$3,$4)",
-                cid, product, amount, _ts(days_ago),
-            )
-
-        # ── Products ───────────────────────────────────────────────────────
-        for name, category, price, description in PRODUCTS:
-            await conn.execute(
-                "INSERT INTO products (name, category, price, description) VALUES ($1,$2,$3,$4)",
-                name, category, price, description,
-            )
-
-        # ── Events ─────────────────────────────────────────────────────────
-        event_count = 0
-        for idx, (_, _, tier) in enumerate(CUSTOMERS):
-            for cust_idx, etype, days_ago in _events_for(idx, tier):
+            # ── Orders ─────────────────────────────────────────────────────
+            for cust_idx, product, amount, days_ago in ORDERS:
                 cid = customer_ids[cust_idx]
                 await conn.execute(
-                    "INSERT INTO events (customer_id, event_type, occurred_at) VALUES ($1,$2,$3)",
-                    cid, etype, _ts(days_ago),
+                    "INSERT INTO orders (customer_id, product, amount, created_at) VALUES ($1,$2,$3,$4)",
+                    cid, product, amount, _ts(days_ago),
                 )
-                event_count += 1
 
-        # ── Tickets ────────────────────────────────────────────────────────
-        for cust_idx, subject, status, priority, created_ago, resolved_ago in TICKETS:
-            cid = customer_ids[cust_idx]
-            resolved_at = _ts(resolved_ago) if resolved_ago is not None else None
-            await conn.execute(
-                "INSERT INTO tickets (customer_id, subject, status, priority, created_at, resolved_at) "
-                "VALUES ($1,$2,$3,$4,$5,$6)",
-                cid, subject, status, priority, _ts(created_ago), resolved_at,
-            )
+            # ── Products ───────────────────────────────────────────────────
+            for name, category, price, description in PRODUCTS:
+                await conn.execute(
+                    "INSERT INTO products (name, category, price, description) VALUES ($1,$2,$3,$4)",
+                    name, category, price, description,
+                )
+
+            # ── Events ─────────────────────────────────────────────────────
+            event_count = 0
+            for idx, (_, _, tier) in enumerate(CUSTOMERS):
+                for cust_idx, etype, days_ago in _events_for(idx, tier):
+                    cid = customer_ids[cust_idx]
+                    await conn.execute(
+                        "INSERT INTO events (customer_id, event_type, occurred_at) VALUES ($1,$2,$3)",
+                        cid, etype, _ts(days_ago),
+                    )
+                    event_count += 1
+
+            # ── Tickets ────────────────────────────────────────────────────
+            for cust_idx, subject, status, priority, created_ago, resolved_ago in TICKETS:
+                cid = customer_ids[cust_idx]
+                resolved_at = _ts(resolved_ago) if resolved_ago is not None else None
+                await conn.execute(
+                    "INSERT INTO tickets (customer_id, subject, status, priority, created_at, resolved_at) "
+                    "VALUES ($1,$2,$3,$4,$5,$6)",
+                    cid, subject, status, priority, _ts(created_ago), resolved_at,
+                )
 
         print(
             f"Seeded {len(CUSTOMERS)} customers, {len(ORDERS)} orders, "

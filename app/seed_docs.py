@@ -167,15 +167,21 @@ async def seed_docs() -> None:
             return
 
         print(f"Embedding and inserting {len(DOCS)} documents …")
-        for doc in DOCS:
-            embedding = await embed_document(doc["content"])
-            embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
-            await conn.execute(
-                "INSERT INTO docs (title, source, content, embedding) "
-                "VALUES ($1, $2, $3, $4::vector)",
-                doc["title"], doc["source"], doc["content"], embedding_str,
-            )
-            print(f"  ✓ {doc['title']}")
+        # Atomic: if the embedding API fails partway through, a partial batch of
+        # rows would leave `count > 0` and the skip-if-present check above would
+        # treat the docs table as done, permanently short the failed documents.
+        # Wrapping in a transaction means a mid-batch failure rolls back to zero
+        # rows, so a re-run cleanly re-embeds everything instead of staying stuck.
+        async with conn.transaction():
+            for doc in DOCS:
+                embedding = await embed_document(doc["content"])
+                embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+                await conn.execute(
+                    "INSERT INTO docs (title, source, content, embedding) "
+                    "VALUES ($1, $2, $3, $4::vector)",
+                    doc["title"], doc["source"], doc["content"], embedding_str,
+                )
+                print(f"  ✓ {doc['title']}")
         print("Done.")
     finally:
         await conn.close()
