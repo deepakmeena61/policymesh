@@ -13,3 +13,5 @@ services:
         sync: false
       - key: AGENT_MODEL
         value: llama-3.3-70b-versatile
+      - key: GEMINI_FALLBACK_MODEL
+        value: gemini-2.5-flash

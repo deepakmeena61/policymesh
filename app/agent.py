@@ -1,5 +1,7 @@
 # Agentic loop: question → tool calls → grounded answer.
-# Uses Groq (free tier, llama-3.3-70b-versatile) via the OpenAI-compatible API.
+# Primary LLM is Groq (free tier, llama-3.3-70b-versatile). On rate limits, rotates
+# through GROQ_API_KEY / GROQ_API_KEY_2, then falls back to Google Gemini via its
+# OpenAI-compatible endpoint (both SDKs speak the same chat.completions interface).
 #
 # Termination conditions (checked in order each iteration):
 #   1. finish_reason == "stop"      — LLM produced text, no tool call pending → done
@@ -11,9 +13,11 @@
 #   {"role": "tool", "tool_call_id": ..., ...}  ← one message per result
 import json
 import os
+import random
 import re
 
 from groq import AsyncGroq
+from openai import AsyncOpenAI
 
 import app.audit as audit
 from app.db import get_pool
@@ -178,22 +182,56 @@ def _parse_malformed_tool_call(error_str: str) -> tuple[str, str] | None:
     return None
 
 
-def _groq_client() -> AsyncGroq:
-    # Support a second key via GROQ_API_KEY_2 for rate-limit failover.
-    # Both keys share the same free-tier limit pool separately,
-    # so if key 1 is exhausted, key 2 has its own 100k tokens/day.
-    import random
-    keys = [k for k in [
+_LEAKED_FUNCTION_CALL_RE = re.compile(r"<function=\w+")
+
+
+def _clean_answer_text(content: str | None, fallback: str) -> str:
+    # Even on a call where no `tools` are offered (e.g. the forced max-steps
+    # synthesis below), LLaMA can still emit its tool-call XML as plain text if
+    # the message history is full of prior tool-call turns. Surfacing that raw
+    # "<function=...>" syntax to the user looks broken, so fall back instead.
+    # Empty/missing content also falls back, same as the original `or fallback`.
+    if not content or _LEAKED_FUNCTION_CALL_RE.search(content):
+        return fallback
+    return content
+
+
+# Gemini's OpenAI-compatible endpoint — same request/response shape as Groq/OpenAI,
+# so it's a drop-in final fallback once every Groq key is rate-limited.
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+
+def _llm_providers() -> list[tuple[str, AsyncGroq | AsyncOpenAI, str]]:
+    # Ordered failover chain: every configured Groq key first (each has its own
+    # separate free-tier 100k tokens/day quota), then Gemini as the last resort.
+    model = os.getenv("AGENT_MODEL", "llama-3.3-70b-versatile")
+    groq_keys = [k for k in [
         os.environ.get("GROQ_API_KEY"),
         os.environ.get("GROQ_API_KEY_2"),
     ] if k]
-    return AsyncGroq(api_key=random.choice(keys))
+    providers: list[tuple[str, AsyncGroq | AsyncOpenAI, str]] = [
+        ("groq", AsyncGroq(api_key=k), model) for k in groq_keys
+    ]
+
+    google_key = os.environ.get("GOOGLE_API_KEY")
+    if google_key:
+        gemini_model = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash")
+        providers.append(("gemini", AsyncOpenAI(api_key=google_key, base_url=GEMINI_BASE_URL), gemini_model))
+    return providers
 
 
 async def run_agent(question: str, caller_role: str) -> dict:
     # Returns: answer, steps (ordered tool_call + answer records), stopped_reason, step_count.
-    client = _groq_client()
-    model = os.getenv("AGENT_MODEL", "llama-3.3-70b-versatile")
+    providers = _llm_providers()
+    if not providers:
+        raise RuntimeError("No LLM provider configured — set GROQ_API_KEY or GOOGLE_API_KEY.")
+
+    # Start on a random Groq key to spread load across requests; on a 429 we advance
+    # sequentially through whatever hasn't been tried yet, ending with Gemini.
+    groq_count = sum(1 for label, *_ in providers if label == "groq")
+    provider_idx = random.randrange(groq_count) if groq_count else 0
+    tried_providers = {provider_idx}
+    _, client, model = providers[provider_idx]
 
     messages: list[dict] = [
         {"role": "system", "content": SYSTEM_PROMPT},
@@ -216,11 +254,17 @@ async def run_agent(question: str, caller_role: str) -> dict:
             llm_retries = 0
         except Exception as exc:
             exc_str = str(exc)
-            # Rate limit on this key — switch to the other key and retry immediately.
-            if ("rate_limit_exceeded" in exc_str or "429" in exc_str) and llm_retries < MAX_LLM_RETRIES:
-                client = _groq_client()
-                llm_retries += 1
-                continue
+            # Rate limit on this provider — advance to the next untried one in the
+            # failover chain (remaining Groq key, then Gemini) and retry immediately.
+            if "rate_limit_exceeded" in exc_str or "429" in exc_str:
+                next_idx = next(
+                    (i for i in range(len(providers)) if i not in tried_providers), None
+                )
+                if next_idx is not None:
+                    tried_providers.add(next_idx)
+                    _, client, model = providers[next_idx]
+                    llm_retries = 0
+                    continue
             if "tool_use_failed" in exc_str:
                 # LLaMA sometimes emits malformed XML: <function=NAME{args}</function>
                 # (missing > after name). Parse the intended call and execute directly
@@ -266,7 +310,11 @@ async def run_agent(question: str, caller_role: str) -> dict:
 
         # Termination 1: LLM has enough data and produced a text answer.
         if choice.finish_reason == "stop":
-            steps.append({"step": len(steps) + 1, "type": "answer", "content": choice.message.content or ""})
+            content = _clean_answer_text(
+                choice.message.content,
+                "I wasn't able to produce a complete answer from the retrieved data.",
+            )
+            steps.append({"step": len(steps) + 1, "type": "answer", "content": content})
             break
 
         if choice.finish_reason != "tool_calls":
@@ -306,10 +354,14 @@ async def run_agent(question: str, caller_role: str) -> dict:
             final = await client.chat.completions.create(
                 model=model, max_tokens=1024, messages=messages
             )
+            content = _clean_answer_text(
+                final.choices[0].message.content,
+                "Step cap reached; unable to synthesise a final answer from the retrieved data. See steps for partial results.",
+            )
             steps.append({
                 "step": len(steps) + 1,
                 "type": "forced_answer",
-                "content": final.choices[0].message.content or "Step cap reached; see steps for partial results.",
+                "content": content,
             })
             break
 
