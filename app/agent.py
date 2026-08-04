@@ -178,9 +178,21 @@ def _parse_malformed_tool_call(error_str: str) -> tuple[str, str] | None:
     return None
 
 
+def _groq_client() -> AsyncGroq:
+    # Support a second key via GROQ_API_KEY_2 for rate-limit failover.
+    # Both keys share the same free-tier limit pool separately,
+    # so if key 1 is exhausted, key 2 has its own 100k tokens/day.
+    import random
+    keys = [k for k in [
+        os.environ.get("GROQ_API_KEY"),
+        os.environ.get("GROQ_API_KEY_2"),
+    ] if k]
+    return AsyncGroq(api_key=random.choice(keys))
+
+
 async def run_agent(question: str, caller_role: str) -> dict:
     # Returns: answer, steps (ordered tool_call + answer records), stopped_reason, step_count.
-    client = AsyncGroq(api_key=os.environ["GROQ_API_KEY"])
+    client = _groq_client()
     model = os.getenv("AGENT_MODEL", "llama-3.3-70b-versatile")
 
     messages: list[dict] = [
@@ -204,6 +216,11 @@ async def run_agent(question: str, caller_role: str) -> dict:
             llm_retries = 0
         except Exception as exc:
             exc_str = str(exc)
+            # Rate limit on this key — switch to the other key and retry immediately.
+            if ("rate_limit_exceeded" in exc_str or "429" in exc_str) and llm_retries < MAX_LLM_RETRIES:
+                client = _groq_client()
+                llm_retries += 1
+                continue
             if "tool_use_failed" in exc_str:
                 # LLaMA sometimes emits malformed XML: <function=NAME{args}</function>
                 # (missing > after name). Parse the intended call and execute directly

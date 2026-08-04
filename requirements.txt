@@ -5,6 +5,7 @@ python-dotenv>=1.0
 mcp[cli]>=2.0
 sqlglot>=26.0
 groq>=1.6
+openai>=1.0
 google-genai>=2.0
 pytest>=8.0
 pytest-asyncio>=1.0
