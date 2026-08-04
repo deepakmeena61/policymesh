@@ -681,12 +681,26 @@
 <script>
 // ── Suggestions ──────────────────────────────────────────────────────────
 const SUGGESTIONS = {
+  // Simple SQL
   'Top customers by spend':     'Who are our top 3 customers by total spend?',
+  'Customers by tier':          'How many customers are on each tier?',
   'Revenue by product':         'What is total revenue by product? Which earns the most?',
   'Open critical tickets':      'Which support tickets are open and marked critical or high priority?',
+  // Complex SQL
   'Most used product':          'Which product has the most orders and generates the most revenue?',
   'Enterprise churn risk':      'Which enterprise customers have had no orders in the last 6 months?',
+  'Unordered products':         'Which products have never been ordered by any customer?',
+  'Avg order value by tier':    'What is the average order value for enterprise customers compared to pro tier customers?',
+  // PII / RBAC demo
+  'Email visibility by role':   'Show me all customers with their email addresses',
+  // Doc search
   'PII data policy':            'What is the data governance and PII policy for customer data?',
+  'Enterprise SLA':             'What SLA do enterprise customers get?',
+  'Analytics Suite features':   'What features does the Analytics Suite include?',
+  // Hybrid (SQL + docs)
+  'Top spenders + their SLA':   'Who are the top customers by spend and what SLA tier do they get?',
+  // Metadata / schema discovery
+  'What can I access?':         'What data do I have access to?',
 };
 
 const suggEl = document.getElementById('suggestions');
