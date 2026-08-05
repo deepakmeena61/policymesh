@@ -101,7 +101,7 @@ Both hit a live LLM against a free-tier key, so the exact score varies run-to-ru
 | Vector search | pgvector `<=>` cosine | Native Postgres, no separate vector DB needed |
 | Tool protocol | MCP 2.0 (SSE transport) | Industry standard for AI tool exposure |
 | SQL parsing | SQLGlot | Typed AST, handles aliases, CTEs, subqueries |
-| Tests | pytest + pytest-asyncio | 43 unit/integration tests + 2-axis live eval |
+| Tests | pytest + pytest-asyncio | 63 unit/integration tests + 2-axis live eval |
 
 ## Running locally
 
