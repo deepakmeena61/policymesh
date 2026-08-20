@@ -1,7 +1,8 @@
 # Agentic loop: question → tool calls → grounded answer.
-# Primary LLM is Groq (free tier, llama-3.3-70b-versatile). On rate limits, rotates
-# through GROQ_API_KEY / GROQ_API_KEY_2, then falls back to Google Gemini via its
-# OpenAI-compatible endpoint (both SDKs speak the same chat.completions interface).
+# Primary LLM is Groq (free tier, openai/gpt-oss-120b). On any provider failure
+# (rate limit, decommissioned model, outage), rotates through GROQ_API_KEY /
+# GROQ_API_KEY_2, then falls back to Google Gemini via its OpenAI-compatible
+# endpoint (both SDKs speak the same chat.completions interface).
 #
 # Termination conditions (checked in order each iteration):
 #   1. finish_reason == "stop"      — LLM produced text, no tool call pending → done
@@ -204,7 +205,7 @@ GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 def _llm_providers() -> list[tuple[str, AsyncGroq | AsyncOpenAI, str]]:
     # Ordered failover chain: every configured Groq key first (each has its own
     # separate free-tier 100k tokens/day quota), then Gemini as the last resort.
-    model = os.getenv("AGENT_MODEL", "llama-3.3-70b-versatile")
+    model = os.getenv("AGENT_MODEL", "openai/gpt-oss-120b")
     groq_keys = [k for k in [
         os.environ.get("GROQ_API_KEY"),
         os.environ.get("GROQ_API_KEY_2"),
@@ -254,9 +255,12 @@ async def run_agent(question: str, caller_role: str) -> dict:
             llm_retries = 0
         except Exception as exc:
             exc_str = str(exc)
-            # Rate limit on this provider — advance to the next untried one in the
-            # failover chain (remaining Groq key, then Gemini) and retry immediately.
-            if "rate_limit_exceeded" in exc_str or "429" in exc_str:
+            # Any provider-level failure (rate limit, decommissioned model, outage, etc.)
+            # advances to the next untried provider in the failover chain (remaining
+            # Groq key, then Gemini) and retries immediately. Malformed tool-call XML
+            # (tool_use_failed) is handled separately below since it's salvageable
+            # without switching providers.
+            if "tool_use_failed" not in exc_str:
                 next_idx = next(
                     (i for i in range(len(providers)) if i not in tried_providers), None
                 )
